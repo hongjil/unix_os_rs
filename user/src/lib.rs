@@ -7,21 +7,24 @@ pub mod console;
 mod lang_items;
 mod syscall;
 
+// The "real" entry point for each user binary.
 #[no_mangle]
 #[link_section = ".text.entry"]
 pub extern "C" fn _start() -> ! {
     // bss clearing should be done by OS :(
     clear_bss();
 
-    // exit(main());
+    exit(main());
     panic!("unreachable after sys_exit!");
 }
 
-// #[linkage = "weak"]
-// #[no_mangle]
-// fn main() -> i32 {
-//     panic!("Cannot find main!");
-// }
+// This is a trick to jump to the real "main"s in the bin folder.
+// Since the linkage is "weak", it will be overwritten by binary's one.
+#[linkage = "weak"]
+#[no_mangle]
+fn main() -> i32 {
+    panic!("Cannot find main!");
+}
 
 fn clear_bss() {
     extern "C" {

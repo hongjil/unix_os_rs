@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate user_lib;
 
+// No main but it will start from lib.rs.
 #[no_mangle]
 fn main() -> i32 {
     println!("Into Test store_fault, we will insert an invalid store operation...");
