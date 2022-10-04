@@ -6,7 +6,7 @@ use core::panic::PanicInfo;
 fn panic(info: &PanicInfo) -> ! {
     if let Some(location) = info.location() {
         println!(
-            "[kernel112] Panicked at {}:{} {}",
+            "[kernel] Panicked at {}:{} {}",
             location.file(),
             location.line(),
             info.message().unwrap()
