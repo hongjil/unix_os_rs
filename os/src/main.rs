@@ -6,6 +6,7 @@ mod console;
 mod batch;
 mod lang_items;
 mod sbi;
+mod stack_trace;
 mod sync;
 mod syscall;
 mod trap;
