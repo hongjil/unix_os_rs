@@ -121,6 +121,8 @@ impl AppManager {
 pub fn init() {
     let app_manager = APP_MANAGER.exclusive_access();
     app_manager.print_app_info();
+    println!("[kernel] Kernel stack base: 0x{:x}", KERNEL_STACK.get_sp());
+    println!("[kernel] User stack base: 0x{:x}", USER_STACK.get_sp());
 }
 
 pub fn run_next_app() -> ! {

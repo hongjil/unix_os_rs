@@ -10,6 +10,9 @@ ifeq ($(MODE), release)
 	MODE_ARG := --release
 endif
 
+# Disassembly
+DISASM ?= -x
+
 # Bootloader
 # We use QEMU by default.
 BOARD ?= qemu

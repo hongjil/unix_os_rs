@@ -47,13 +47,6 @@ pub unsafe fn print_stack_trace() -> () {
         println!("0x{:016x}, fp = 0x{:016x}", saved_ra, saved_fp);
 
         fp = saved_fp as *const usize;
-
-        // Looks like the frame stack looping doesn't work for exception.
-        // Instead, it points to 0x1 address instead of 0.
-        // TODO: Investigate and fix the stack trace looping.
-        if saved_fp == 1 {
-            break;
-        }
     }
     println!("== End stack trace ==");
 }

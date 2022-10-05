@@ -1,6 +1,7 @@
 pub mod context;
 
 use crate::batch::run_next_app;
+use crate::stack_trace;
 use crate::syscall::syscall;
 use core::arch::global_asm;
 use riscv::register::{
@@ -33,7 +34,7 @@ fn trap_handler(ctx: &mut context::TrapContext) -> &mut context::TrapContext {
         // Triggered from user space, executing system call.
         Trap::Exception(Exception::UserEnvCall) => {
             println!(
-                "[Kernel] Executing system call: id {}, args {}, {}, {}",
+                "[kernel] Executing system call: id {}, args {}, {}, {}",
                 ctx.x[17], ctx.x[10], ctx.x[11], ctx.x[12]
             );
             ctx.sepc += 4;
