@@ -1,7 +1,22 @@
 # RISC-V registers cheatsheet
-
+[RISC-V Assembly Programmer's Manual](https://github.com/riscv-non-isa/riscv-asm-manual/blob/master/riscv-asm.md)
 ## General-purpose registers 
-[Calling convention](https://en.wikichip.org/wiki/risc-v/registers)
+
+reg    | name  | saver  | description
+-------|-------|--------|------------
+x0     | zero  |        | hardwired zero
+x1     | ra    | caller | return address
+x2     | sp    | callee | stack pointer
+x3     | gp    |        | global pointer
+x4     | tp    |        | thread pointer
+x5-7   | t0-2  | caller | temporary registers
+x8     | s0/fp | callee | saved register / frame pointer
+x9     | s1    | callee | saved register
+x10-11 | a0-1  | caller | function arguments / return values
+x12-17 | a2-7  | caller | function arguments
+x18-27 | s2-11 | callee | saved registers
+x28-31 | t3-6  | caller | temporary registers
+pc     |       |        | program counter
 
 ## Supervisor Control/status register
 [Reference](https://riscv.org/wp-content/uploads/2017/05/riscv-privileged-v1.10.pdf)
