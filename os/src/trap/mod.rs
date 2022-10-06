@@ -1,7 +1,6 @@
 pub mod context;
 
 use crate::batch::run_next_app;
-use crate::stack_trace;
 use crate::syscall::syscall;
 use core::arch::global_asm;
 use riscv::register::{
