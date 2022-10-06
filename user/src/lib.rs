@@ -1,8 +1,8 @@
+#![no_std]
 #![feature(linkage)]
 #![feature(panic_info_message)]
-#![no_std]
-#[macro_use]
 
+#[macro_use]
 pub mod console;
 mod lang_items;
 mod syscall;
@@ -31,7 +31,9 @@ fn clear_bss() {
         fn sbss();
         fn ebss();
     }
-    (sbss as usize..ebss as usize).for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
+    (sbss as usize..ebss as usize).for_each(|addr| unsafe {
+        (addr as *mut u8).write_volatile(0);
+    });
 }
 
 use syscall::*;
@@ -41,4 +43,10 @@ pub fn write(fd: usize, buf: &[u8]) -> isize {
 }
 pub fn exit(exit_code: i32) -> isize {
     sys_exit(exit_code)
+}
+pub fn yield_() -> isize {
+    sys_yield()
+}
+pub fn get_time() -> isize {
+    sys_get_time()
 }

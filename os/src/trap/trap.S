@@ -35,11 +35,6 @@ __alltraps:
     sd t2, 2*8(sp)
     # set input argument of trap_handler(cx: &mut TrapContext)
     mv a0, sp
-    # Set the fp as 0 if it equals to 0x1.
-    # TODO: Investigate why $fp was set as 0x1 using `gdb watch`.
-    addi fp, fp, -1
-    bnez fp, 0x4
-    li fp, 0
 
     call trap_handler
 

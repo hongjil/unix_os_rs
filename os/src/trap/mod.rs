@@ -1,7 +1,6 @@
 pub mod context;
 
-use crate::batch::run_next_app;
-use crate::syscall::syscall;
+use crate::{syscall::syscall, task::run_next_app};
 use core::arch::global_asm;
 use riscv::register::{
     mtvec::TrapMode,
@@ -28,14 +27,9 @@ pub fn init() {
 fn trap_handler(ctx: &mut context::TrapContext) -> &mut context::TrapContext {
     let scause = scause::read();
     let stval = stval::read();
-    println!("[kernel] trapping from address 0x{:x}", ctx.sepc);
     match scause.cause() {
         // Triggered from user space, executing system call.
         Trap::Exception(Exception::UserEnvCall) => {
-            println!(
-                "[kernel] Executing system call: id {}, args {}, {}, {}",
-                ctx.x[17], ctx.x[10], ctx.x[11], ctx.x[12]
-            );
             ctx.sepc += 4;
             ctx.x[10] = syscall(ctx.x[17], [ctx.x[10], ctx.x[11], ctx.x[12]]) as usize;
         }
