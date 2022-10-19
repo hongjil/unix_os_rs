@@ -3,6 +3,7 @@
 #![feature(panic_info_message)]
 #[macro_use]
 mod console;
+mod config;
 mod lang_items;
 mod loader;
 mod sbi;
@@ -21,7 +22,7 @@ pub fn rust_main() -> ! {
     println!("[kernel] Hello, world!");
     trap::init();
     loader::load_apps();
-    task::run_next_app();
+    task::run_first_task();
 }
 
 fn clear_bss() {
