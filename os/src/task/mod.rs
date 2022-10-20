@@ -58,7 +58,8 @@ impl TaskManager {
         let next_task_ctx_ptr = &inner.tasks[0].ctx as *const TaskContext;
         drop(inner);
         // We just create an empty TaskContext which would be written unused
-        // registers in __switch.
+        // registers in __switch. Since it's not registered in the TaskManager,
+        // it would never switch back to this fake TaskContext and never return.
         let mut _unused = TaskContext::zero_init();
         unsafe {
             __switch(&mut _unused as *mut TaskContext, next_task_ctx_ptr);
@@ -127,17 +128,21 @@ impl TaskManager {
 }
 
 /// Run the first task.
+/// This function never returns since run_first_task never returns.
 pub fn run_first_task() -> ! {
-    TASK_MANAGER.run_first_task();
+    TASK_MANAGER.run_first_task()
 }
 
 /// Suspends the current task, then run the next task.
+/// Other than the other function, this does return since when we switched back
+/// it needs to continue to run.
 pub fn suspend_current_and_run_next() {
     TASK_MANAGER.mark_current_suspended();
     TASK_MANAGER.run_next_task();
 }
 
 /// Exits the current task, then run the next task.
+/// This function never returns since we never switched back to an exited task.
 pub fn exit_current_and_run_next() -> ! {
     TASK_MANAGER.mark_current_exited();
     TASK_MANAGER.run_next_task();

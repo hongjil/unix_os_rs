@@ -1,9 +1,13 @@
-# The Title of this commit:
+# The Title of this commit, select the label(s) [feat|docs|fix] as prefix:
 
-# (Optional) the content or other notes for this commit:
 
-# What milestone do you achieve, e.g. XXX tutorial - Chapter y.z
+# (Optional) The content or other notes for this commit:
+
+
+# (Optional) What milestone do you achieve, e.g. rCore tutorial - Chapter X.Y
 Milestone:
 
-# How do you tested this commit? e.g. manual or unit test
+
+# (Optional) How do you tested this commit? e.g. manual or unit test
 Tested:
+
