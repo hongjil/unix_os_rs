@@ -57,7 +57,6 @@ impl TaskManager {
         inner.tasks[0].status = TaskStatus::Running;
         let next_task_ctx_ptr = &inner.tasks[0].ctx as *const TaskContext;
         drop(inner);
-        self.print_tasks();
         // We just create an empty TaskContext which would be written unused
         // registers in __switch.
         let mut _unused = TaskContext::zero_init();
@@ -77,6 +76,7 @@ impl TaskManager {
                 current_task_id, task.status
             );
         }
+        println!("[kernel] Suspending the running task {}", current_task_id);
         task.status = TaskStatus::Ready;
     }
     /// Change the status of current `Running` task into `Exited`. Panic
@@ -91,6 +91,7 @@ impl TaskManager {
                 current_task_id, task.status
             );
         }
+        println!("[kernel] Exiting the running task {}", current_task_id);
         task.status = TaskStatus::Exited;
     }
     fn find_next_task(&self) -> Option<usize> {
@@ -103,7 +104,7 @@ impl TaskManager {
         }
         None
     }
-    fn run_next_task(&self) -> ! {
+    fn run_next_task(&self) {
         if let Some(next_task_id) = self.find_next_task() {
             let mut inner = TASK_MANAGER.inner.exclusive_access();
             let current_task_id = inner.cur_task;
@@ -112,24 +113,16 @@ impl TaskManager {
             inner.cur_task = next_task_id;
             inner.tasks[next_task_id].status = TaskStatus::Running;
             drop(inner);
-            self.print_tasks();
+            println!(
+                "[kernel] switching task from {} to {}",
+                current_task_id, next_task_id
+            );
             unsafe {
                 __switch(cur_task_ptr, next_task_ptr);
             }
-            panic!("Unreachable in TaskManager::run_next_task")
         } else {
             panic!("All tasks are exited.");
         }
-    }
-    fn print_tasks(&self) {
-        println!("[kernel] ===== Printing tasks info Start =====");
-        let inner = TASK_MANAGER.inner.exclusive_access();
-        inner.tasks.iter().enumerate().for_each(|(i, task)| {
-            if i < TASK_MANAGER.num_task {
-                println!("Task {} with Status {:?}", i, task.status);
-            }
-        });
-        println!("[kernel] ===== Printing tasks info Done  =====");
     }
 }
 
@@ -139,13 +132,14 @@ pub fn run_first_task() -> ! {
 }
 
 /// Suspends the current task, then run the next task.
-pub fn suspend_current_and_run_next() -> ! {
+pub fn suspend_current_and_run_next() {
     TASK_MANAGER.mark_current_suspended();
     TASK_MANAGER.run_next_task();
 }
 
-/// Exits the current task,  then run the next task.
+/// Exits the current task, then run the next task.
 pub fn exit_current_and_run_next() -> ! {
     TASK_MANAGER.mark_current_exited();
     TASK_MANAGER.run_next_task();
+    panic!("Unreachable in exit_current_and_run_next()");
 }
