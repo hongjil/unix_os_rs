@@ -23,9 +23,12 @@ pc     |       |        | program counter
 
 ### Controlled by hardware
 These CSRs are expected to be adapted automatically when a trap happened.
-- `sstatus`: Keeps track of the processor’s current **operating states**. 
-    - Among the bits, the `SPP` bit indicates the privilege level at which a hart[^1] was executing before entering supervisor
-mode. When a trap is taken, SPP is set to 0 if the trap originated from user mode, or 1 otherwise.
+- `sstatus`: Keeps track of the processor’s current **operating states**. Among the bits:
+    - `SPP` bit indicates the privilege level at which a hart[^1] was executing before entering supervisor mode. When a trap is taken, SPP is set to 0 if the trap originated from user mode, or 1 otherwise.
+    - `SIE` bit indicates whether interrupts are enabled or disabled in supervisor mode. When it's clear, interrupts are not taken while in supervisor mode. When the hart is running in user-mode, the value on `SIE` bit is ignored, and supervisor interrupts are always enabled. The supervisor can disable or enable individual interrupt source using `sie` register.
+    - `PSIE` bit whether supervisor interrupts were enabled prior to trapping into supervisor mode. When a trap happens, then `SIE` -> `SPIE` and `0` -> `SIE`. When `SRET` executed, restored back the two bits. 
+      > The nested interrupt/trap hence is disabled by since we set `0` to `SIE` when trapping to the supervisor mode.
+
 - `sepc`: When a trap is taken into S-mode, sepc is written with the **virtual address** of the instruction that encountered the exception.
 - `scause`/`stval`: 
   - When a trap is taken into S-mode, `scause` is written with a **code** indicating the event that caused the trap.

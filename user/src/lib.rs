@@ -47,6 +47,33 @@ pub fn exit(exit_code: i32) -> isize {
 pub fn yield_() -> isize {
     sys_yield()
 }
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct TimeVal {
+    pub sec: usize,
+    pub usec: usize,
+}
+
+impl TimeVal {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
 pub fn get_time() -> isize {
-    sys_get_time()
+    let time = TimeVal::new();
+    match sys_get_time(&time, 0) {
+        0 => ((time.sec & 0xffff) * 1000 + time.usec / 1000) as isize,
+        _ => -1,
+    }
+}
+pub fn sleep_ms(time: isize) -> isize {
+    let ddl = get_time() + time;
+    while get_time() < ddl {
+        let ret = yield_();
+        if ret != 0 {
+            return ret;
+        }
+    }
+    0
 }

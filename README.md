@@ -11,6 +11,7 @@ The OS runs with `qemu-system-riscv64` simulator on Mac M1 and check the [prereq
 $ cd os/
 $ make run
 ```
+[![asciicast](https://asciinema.org/a/Phunb3wzt3978bfqDx2RaIaPL.svg)](https://asciinema.org/a/Phunb3wzt3978bfqDx2RaIaPL)
 ### Run with GDB
 ```bash
 $ cd os/

@@ -77,6 +77,7 @@ impl TaskManager {
                 current_task_id, task.status
             );
         }
+        #[cfg(debug_assertions)]
         println!("[kernel] Suspending the running task {}", current_task_id);
         task.status = TaskStatus::Ready;
     }
@@ -114,15 +115,18 @@ impl TaskManager {
             inner.cur_task = next_task_id;
             inner.tasks[next_task_id].status = TaskStatus::Running;
             drop(inner);
+
+            #[cfg(debug_assertions)]
             println!(
                 "[kernel] switching task from {} to {}",
                 current_task_id, next_task_id
             );
+
             unsafe {
                 __switch(cur_task_ptr, next_task_ptr);
             }
         } else {
-            panic!("All tasks are exited.");
+            panic!("All tasks are exited normally.");
         }
     }
 }

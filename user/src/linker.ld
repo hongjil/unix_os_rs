@@ -17,25 +17,18 @@ SECTIONS
         *(.srodata .srodata.*)
     }
     . = ALIGN(4K);
-    sdata = .;
     .data : {
         *(.data .data.*)
         *(.sdata .sdata.*)
     }
-
     . = ALIGN(4K);
-    edata = .;
     .bss : {
-        /* This is interesting we put the stack into bss section */
-        *(.bss.stack)
         sbss = .;
         *(.bss .bss.*)
         *(.sbss .sbss.*)
     }
-
     . = ALIGN(4K);
     ebss = .;
-    ekernel = .;
 
     /DISCARD/ : {
         *(.eh_frame)

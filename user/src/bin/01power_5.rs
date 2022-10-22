@@ -20,7 +20,7 @@ fn main() -> i32 {
         cur = next;
         if i % 10000 == 0 {
             println!("power_5 [{}/{}]", i, iter);
-            user_lib::yield_();
+            user_lib::sleep_ms(50);
         }
     }
     println!("{}^{} = {}(MOD {})", p, iter, s[cur], m);
