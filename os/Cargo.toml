@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
+linked_list_allocator = "0.10.4"

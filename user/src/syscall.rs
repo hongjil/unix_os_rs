@@ -4,7 +4,7 @@ use core::arch::asm;
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
 const SYSCALL_YIELD: usize = 124;
-pub const SYSCALL_GETTIMEOFDAY: usize = 169;
+const SYSCALL_GET_TIME: usize = 169;
 
 fn syscall(id: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
@@ -33,5 +33,5 @@ pub fn sys_yield() -> isize {
 }
 
 pub fn sys_get_time(time: &TimeVal, tz: usize) -> isize {
-    syscall(SYSCALL_GETTIMEOFDAY, [time as *const _ as usize, tz, 0])
+    syscall(SYSCALL_GET_TIME, [time as *const _ as usize, tz, 0])
 }
