@@ -29,3 +29,13 @@ macro_rules! println {
         $crate::console::print(format_args!(concat!($fmt, "\n") $(, $($arg)+)?));
     }
 }
+
+#[macro_export]
+macro_rules! debug {
+    ($fmt: literal $(, $($arg: tt)+)?) => {
+        #[cfg(debug_assertions)]
+        {
+            $crate::console::print(format_args!(concat!("[debug] ", $fmt, "\n") $(, $($arg)+)?));
+        }
+    };
+}

@@ -15,8 +15,12 @@ mod syscall;
 mod task;
 mod timer;
 mod trap;
+mod utils;
 
+#[macro_use]
 extern crate alloc;
+#[macro_use]
+extern crate bitflags;
 
 use core::arch::global_asm;
 global_asm!(include_str!("entry.asm"));
@@ -31,9 +35,8 @@ pub fn rust_main() -> ! {
     }
     println!("[kernel] Initializing trap handling");
     trap::init();
-    println!("[kernel] Initializing heap allocator");
-    mm::init_heap();
-    loader::load_apps();
+    println!("[kernel] Initializing memory management");
+    mm::init();
     println!("[kernel] Setting up timer interrupt");
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
@@ -46,5 +49,6 @@ fn clear_bss() {
         fn sbss();
         fn ebss();
     }
-    (sbss as usize..ebss as usize).for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
+    (sbss as usize..ebss as usize)
+        .for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
 }

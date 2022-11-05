@@ -2,10 +2,10 @@ mod context;
 mod switch;
 mod task;
 
-use crate::config;
-use crate::loader::{get_app_base, get_num_app, KERNEL_STACK, USER_STACK};
+use crate::loader::{get_app_data, get_num_app};
 use crate::sync::UPSafeCell;
-use crate::trap;
+use crate::trap::TrapContext;
+use alloc::vec::Vec;
 use context::TaskContext;
 use lazy_static::*;
 use switch::__switch;
@@ -21,7 +21,7 @@ struct TaskManager {
 
 struct TaskManagerInner {
     // The control block of each task.
-    tasks: [task::TaskControlBlock; config::MAX_APP_NUM],
+    tasks: Vec<TaskControlBlock>,
     // The current running task.
     cur_task: usize,
 }
@@ -29,23 +29,20 @@ struct TaskManagerInner {
 // variables are used.
 lazy_static! {
     static ref TASK_MANAGER: TaskManager = {
-        let mut tasks = [TaskControlBlock {
-            ctx: TaskContext::zero_init(),
-            status: TaskStatus::UnInit,
-        }; config::MAX_APP_NUM];
-        for (i, task) in tasks.iter_mut().enumerate() {
-            task.ctx = TaskContext::init(KERNEL_STACK[i].push_context(
-                trap::TrapContext::app_init_context(get_app_base(i), USER_STACK[i].get_sp()),
-            ) as *const trap::TrapContext as usize);
-            task.status = TaskStatus::Ready;
+        println!("[kernel] Initializing task manager");
+        let num_app = get_num_app();
+        println!("[kernel] Num of applications: {}", num_app);
+
+        let mut tasks: Vec<TaskControlBlock> = Vec::new();
+
+        for i in 0..num_app {
+            tasks.push(TaskControlBlock::new(get_app_data(i), i))
         }
+        debug!("Initializing app/task done!");
         TaskManager {
-            num_task: get_num_app(),
+            num_task: num_app,
             inner: unsafe {
-                UPSafeCell::new(TaskManagerInner {
-                    tasks: tasks,
-                    cur_task: 0,
-                })
+                UPSafeCell::new(TaskManagerInner { tasks, cur_task: 0 })
             },
         }
     };
@@ -66,7 +63,8 @@ impl TaskManager {
         }
         panic!("Unreachable in TaskManager::run_first_task")
     }
-    /// Change the status of current `Running` task into `Ready`.
+
+    // Change the status of current `Running` task into `Ready`.
     fn mark_current_suspended(&self) {
         let mut inner = TASK_MANAGER.inner.exclusive_access();
         let current_task_id = inner.cur_task;
@@ -77,12 +75,14 @@ impl TaskManager {
                 current_task_id, task.status
             );
         }
-        #[cfg(debug_assertions)]
-        println!("[kernel] Suspending the running task {}", current_task_id);
+
+        debug!("Suspending the running task {}", current_task_id);
+
         task.status = TaskStatus::Ready;
     }
-    /// Change the status of current `Running` task into `Exited`. Panic
-    /// if the current task is not in Running status.
+
+    // Change the status of current `Running` task into `Exited`. Panic
+    // if the current task is not in Running status.
     fn mark_current_exited(&self) {
         let mut inner = TASK_MANAGER.inner.exclusive_access();
         let current_task_id = inner.cur_task;
@@ -110,15 +110,16 @@ impl TaskManager {
         if let Some(next_task_id) = self.find_next_task() {
             let mut inner = TASK_MANAGER.inner.exclusive_access();
             let current_task_id = inner.cur_task;
-            let cur_task_ptr = &mut inner.tasks[current_task_id].ctx as *mut TaskContext;
-            let next_task_ptr = &inner.tasks[next_task_id].ctx as *const TaskContext;
+            let cur_task_ptr =
+                &mut inner.tasks[current_task_id].ctx as *mut TaskContext;
+            let next_task_ptr =
+                &inner.tasks[next_task_id].ctx as *const TaskContext;
             inner.cur_task = next_task_id;
             inner.tasks[next_task_id].status = TaskStatus::Running;
             drop(inner);
 
-            #[cfg(debug_assertions)]
-            println!(
-                "[kernel] switching task from {} to {}",
+            debug!(
+                "switching task from {} to {}",
                 current_task_id, next_task_id
             );
 
@@ -128,6 +129,24 @@ impl TaskManager {
         } else {
             panic!("All tasks are exited normally.");
         }
+    }
+
+    // Returns physical page number of page table in the current task context.
+    fn get_current_token(&self) -> usize {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.cur_task].memory_set.token()
+    }
+
+    // Returns trap context in the current task context.
+    fn get_current_trap_ctx(&self) -> &mut TrapContext {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.cur_task].trap_ctx_ppn.get_mut()
+    }
+
+    // Returns current task id.
+    fn get_current_idx(&self) -> usize {
+        let inner = self.inner.exclusive_access();
+        inner.cur_task
     }
 }
 
@@ -151,4 +170,19 @@ pub fn exit_current_and_run_next() -> ! {
     TASK_MANAGER.mark_current_exited();
     TASK_MANAGER.run_next_task();
     panic!("Unreachable in exit_current_and_run_next()");
+}
+
+/// Return the address of root page table for the current task.
+pub fn current_user_token() -> usize {
+    TASK_MANAGER.get_current_token()
+}
+
+/// Return the address of TrapContext for the current task.
+pub fn current_trap_ctx() -> &'static mut TrapContext {
+    TASK_MANAGER.get_current_trap_ctx()
+}
+
+/// Return the current running app idx.
+pub fn current_idx() -> usize {
+    TASK_MANAGER.get_current_idx()
 }

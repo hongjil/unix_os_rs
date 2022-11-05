@@ -41,5 +41,9 @@ These CSRs are expected to be initialized or adapted by OS.
   - When `MODE`=`Vectored` => Asynchronous interrupts set pc to `BASE+4×cause`
 - `sscratch`: Hold a pointer to the hart-local **supervisor context** while the hart is executing user code. At the beginning of a trap handler, `sscratch` is swapped with a user register to provide an initial working register.  
     - In this project, `sscratch` points to the kernel stack while `sp` points to the user stack and they will swap during trap.
+- `satp`: Supervisor Address Translation and Protection; Consists of 3 parts:
+    - `MODE`: the translation scheme
+    - `PPN`:  The physical page number of the root page table.
+    - `ASID`: *TBD*
 
 [^1]: hart means "hardware thread"

@@ -1,4 +1,4 @@
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct TaskContext {
     ra: usize,
@@ -14,13 +14,10 @@ impl TaskContext {
             s: [0; 12],
         }
     }
-    pub fn init(kernel_sp: usize) -> Self {
-        extern "C" {
-            fn __restore();
-        }
-        TaskContext {
-            ra: __restore as usize,
-            sp: kernel_sp,
+    pub fn goto_trap_return(kstack_ptr: usize) -> Self {
+        Self {
+            ra: crate::trap::trap_return as usize,
+            sp: kstack_ptr,
             s: [0; 12],
         }
     }

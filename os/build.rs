@@ -11,12 +11,14 @@ static TARGET_PATH: &str = "../user/target/riscv64gc-unknown-none-elf/release/";
 
 fn insert_app_data() -> Result<()> {
     let mut f = File::create("src/link_app.S").unwrap();
-    let mut apps: Vec<_> = read_dir("../user/src/bin")
+    let mut apps: Vec<_> = read_dir("../user/build/elf/")
         .unwrap()
         .into_iter()
         .map(|dir_entry| {
-            let mut name_with_ext = dir_entry.unwrap().file_name().into_string().unwrap();
-            name_with_ext.drain(name_with_ext.find('.').unwrap()..name_with_ext.len());
+            let mut name_with_ext =
+                dir_entry.unwrap().file_name().into_string().unwrap();
+            name_with_ext
+                .drain(name_with_ext.find('.').unwrap()..name_with_ext.len());
             name_with_ext
         })
         .collect();
@@ -47,7 +49,7 @@ _num_app:
     .global app_{0}_start
     .global app_{0}_end
 app_{0}_start:
-    .incbin "{2}{1}.bin"
+    .incbin "{2}{1}.elf"
 app_{0}_end:"#,
             idx, app, TARGET_PATH
         )?;

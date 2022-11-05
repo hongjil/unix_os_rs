@@ -1,7 +1,8 @@
 pub mod context;
 
+use crate::config::{TRAMPOLINE_ADDR, TRAP_CONTEXT_ADDR};
 use crate::{syscall::syscall, task::*, timer::set_next_trigger};
-use core::arch::global_asm;
+use core::arch::{asm, global_asm};
 use riscv::register::sie;
 use riscv::register::{
     mtvec::TrapMode,
@@ -14,12 +15,7 @@ global_asm!(include_str!("trap.S"));
 // Initialize the stvec register so that it knows where to jump
 // when a trap happens.
 pub fn init() {
-    extern "C" {
-        fn __alltraps();
-    }
-    unsafe {
-        stvec::write(__alltraps as usize, TrapMode::Direct);
-    }
+    set_kernel_trap_entry();
 }
 
 pub fn enable_timer_interrupt() {
@@ -28,24 +24,73 @@ pub fn enable_timer_interrupt() {
     }
 }
 
+fn set_kernel_trap_entry() {
+    unsafe {
+        stvec::write(trap_from_kernel as usize, TrapMode::Direct);
+    }
+}
+
+fn set_user_trap_entry() {
+    unsafe {
+        stvec::write(TRAMPOLINE_ADDR as usize, TrapMode::Direct);
+    }
+}
+
+pub fn trap_return() -> ! {
+    set_user_trap_entry();
+    let trap_ctx_ptr = TRAP_CONTEXT_ADDR;
+    let user_satp = current_user_token();
+    extern "C" {
+        fn __alltraps();
+        fn __restore();
+    }
+    let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE_ADDR;
+    unsafe {
+        // https://doc.rust-lang.org/reference/inline-assembly.html
+        asm!(
+            // Clear i-cache
+            "fence.i",
+            "jr {restore_va}",
+            restore_va = in(reg) restore_va,
+            in("a0") trap_ctx_ptr,
+            in("a1") user_satp,
+            options(noreturn)
+        )
+    }
+}
+
+#[no_mangle]
+pub fn trap_from_kernel() -> ! {
+    let scause = scause::read();
+    let stval = stval::read();
+    panic!("A trap from kernel: {:?} with {:?}", scause.cause(), stval);
+}
+
 // Handles an interrupt, exception or system call.
 // Jumps from the __alltrap and return to __restore in trap.S
 #[no_mangle]
-fn trap_handler(ctx: &mut context::TrapContext) -> &mut context::TrapContext {
+pub fn trap_handler() -> ! {
+    set_kernel_trap_entry();
+    let ctx = current_trap_ctx();
     let scause = scause::read();
     let stval = stval::read();
+    debug!("A trap from user: {:?} with {:?}", scause.cause(), stval);
     match scause.cause() {
         // Triggered from user space, executing system call.
         Trap::Exception(Exception::UserEnvCall) => {
             ctx.sepc += 4;
-            ctx.x[10] = syscall(ctx.x[17], [ctx.x[10], ctx.x[11], ctx.x[12]]) as usize;
+            ctx.x[10] =
+                syscall(ctx.x[17], [ctx.x[10], ctx.x[11], ctx.x[12]]) as usize;
         }
-        Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
+        Trap::Exception(Exception::StoreFault)
+        | Trap::Exception(Exception::StorePageFault) => {
             println!("[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, core dumped.", stval, ctx.sepc);
             exit_current_and_run_next();
         }
         Trap::Exception(Exception::IllegalInstruction) => {
-            println!("[kernel] IllegalInstruction in application, core dumped.");
+            println!(
+                "[kernel] IllegalInstruction in application, core dumped."
+            );
             exit_current_and_run_next();
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
@@ -63,7 +108,7 @@ fn trap_handler(ctx: &mut context::TrapContext) -> &mut context::TrapContext {
             );
         }
     }
-    ctx
+    trap_return();
 }
 
 pub use context::TrapContext;

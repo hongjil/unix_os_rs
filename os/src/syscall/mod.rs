@@ -7,11 +7,24 @@ mod fs;
 mod process;
 mod timer;
 
+use crate::task::current_idx;
 use fs::*;
 use process::*;
 use timer::*;
 
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
+    debug!(
+        "[app {}] make a syscall: {}",
+        current_idx(),
+        match syscall_id {
+            SYSCALL_WRITE => "SYSCALL_WRITE",
+            SYSCALL_EXIT => "SYSCALL_EXIT",
+            SYSCALL_YIELD => "SYSCALL_YIELD",
+            SYSCALL_GET_TIME => "SYSCALL_GET_TIME",
+            _ => "SYSCALL_UNSUPPORTED",
+        }
+    );
+
     match syscall_id {
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         SYSCALL_EXIT => sys_exit(args[0] as i32),
