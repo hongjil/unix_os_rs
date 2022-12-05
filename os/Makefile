@@ -38,7 +38,7 @@ $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 kernel:
-	@cd ../user && make build
+	@cd ../user && make build TEST=$(TEST)
 	@echo Platform: $(BOARD)
 	@cargo build $(MODE_ARG)
 

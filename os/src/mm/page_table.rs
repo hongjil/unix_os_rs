@@ -45,8 +45,8 @@ bitflags! {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct PageTableEntry(usize);
-// The page table has 3-level page directory and each page directory has 512
-// (2^9) page table entries.
+// The page table has 3-level page directory; The page directory in each level
+//  has 512 (2^9) page table entries and each entry take 8 bytes.
 pub struct PageTable {
     // The physical page num of the root level page directory.
     root_ppn: PhysPageNum,

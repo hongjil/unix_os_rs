@@ -4,10 +4,17 @@ APP_DIR := src/bin
 BUILD_DIR := build
 TARGET_DIR := target/$(TARGET)/$(MODE)
 APPS := $(wildcard $(APP_DIR)/*.rs)
-ELFS := $(patsubst $(APP_DIR)/%.rs, $(TARGET_DIR)/%, $(APPS))
-
 OBJDUMP := rust-objdump --arch-name=riscv64
 OBJCOPY := rust-objcopy --binary-architecture=riscv64
+
+TEST ?= 0
+ifeq ($(TEST), 0)
+	APPS :=  $(filter-out $(wildcard $(APP_DIR)/test*.rs), $(wildcard $(APP_DIR)/*.rs))
+else
+	APPS :=  $(wildcard $(APP_DIR)/test$(TEST)*.rs)
+endif
+
+ELFS := $(patsubst $(APP_DIR)/%.rs, $(TARGET_DIR)/%, $(APPS))
 
 elf: $(APPS)
 	@cargo build --release
@@ -28,5 +35,6 @@ build: clean pre binary
 
 clean:
 	@cargo clean
+	@rm -rf $(BUILD_DIR)
 
 .PHONY: elf binary build clean
