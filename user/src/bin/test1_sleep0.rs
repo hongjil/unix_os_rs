@@ -19,6 +19,6 @@ fn main() -> i32 {
     while get_time() < wait_for {
         yield_();
     }
-    println!("Test sleep OK!");
+    println!("Test1 sleep0 OK!");
     0
 }

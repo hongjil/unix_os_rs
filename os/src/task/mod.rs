@@ -3,8 +3,10 @@ mod switch;
 mod task;
 
 use crate::loader::{get_app_data, get_num_app};
+use crate::mm::MemorySet;
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use context::TaskContext;
 use lazy_static::*;
@@ -36,7 +38,12 @@ lazy_static! {
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
 
         for i in 0..num_app {
-            tasks.push(TaskControlBlock::new(get_app_data(i), i))
+            tasks.push(match TaskControlBlock::new(get_app_data(i), i) {
+                Ok(tcb) => tcb,
+                Err(err) => {
+                    panic!("Failed initialize control block for app {} with error: {:?}", i, err)
+                }
+            })
         }
         debug!("Initializing app/task done!");
         TaskManager {
@@ -132,9 +139,9 @@ impl TaskManager {
     }
 
     // Returns physical page number of page table in the current task context.
-    fn get_current_token(&self) -> usize {
+    fn get_current_memory_set(&self) -> Arc<UPSafeCell<MemorySet>> {
         let inner = self.inner.exclusive_access();
-        inner.tasks[inner.cur_task].memory_set.token()
+        inner.tasks[inner.cur_task].memory_set.clone()
     }
 
     // Returns trap context in the current task context.
@@ -173,8 +180,8 @@ pub fn exit_current_and_run_next() -> ! {
 }
 
 /// Return the address of root page table for the current task.
-pub fn current_user_token() -> usize {
-    TASK_MANAGER.get_current_token()
+pub fn current_user_memory_set() -> Arc<UPSafeCell<MemorySet>> {
+    TASK_MANAGER.get_current_memory_set()
 }
 
 /// Return the address of TrapContext for the current task.

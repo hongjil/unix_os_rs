@@ -50,7 +50,7 @@ pub struct PageTableEntry(usize);
 pub struct PageTable {
     // The physical page num of the root level page directory.
     root_ppn: PhysPageNum,
-    // Keeps track of each frames allocated from FrameAllocator.
+    // Keeps track of each frame, which is allocated from FrameAllocator.
     frames: Vec<FrameTracker>,
 }
 
@@ -200,8 +200,8 @@ pub fn translated_byte_buffer(
     v
 }
 
-// Returns a list of mutable  memory slice in physical address given the root
-// address of page table.
+// Returns a list of mutable memory slice in physical address given the
+// root address of page table.
 pub fn translated_mut_byte_buffer(
     token: usize,
     ptr: *const u8,

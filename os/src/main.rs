@@ -2,9 +2,11 @@
 #![no_std]
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
+#![feature(drain_filter)]
 mod config;
 #[macro_use]
 mod console;
+mod error;
 mod lang_items;
 mod loader;
 mod mm;

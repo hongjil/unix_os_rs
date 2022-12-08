@@ -8,12 +8,17 @@ use crate::sync::UPSafeCell;
 pub use address::*;
 use alloc::sync::Arc;
 use lazy_static::*;
-pub use memory_set::{MapPermission, Mapping, MemorySet};
+pub use memory_set::{MapArea, MapPermission, Mapping, MemorySet};
 pub use page_table::{translated_byte_buffer, translated_mut_byte_buffer};
 
 lazy_static! {
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
-        Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
+        Arc::new(unsafe {
+            UPSafeCell::new(match MemorySet::new_kernel() {
+                Ok(memory_set) => memory_set,
+                Err(err) => panic!("Initialize kernel space failed: {:?}", err),
+            })
+        });
 }
 
 pub fn init() {

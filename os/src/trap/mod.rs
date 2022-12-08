@@ -1,6 +1,7 @@
 pub mod context;
 
 use crate::config::{TRAMPOLINE_ADDR, TRAP_CONTEXT_ADDR};
+use crate::sbi::shutdown;
 use crate::{syscall::syscall, task::*, timer::set_next_trigger};
 use core::arch::{asm, global_asm};
 use riscv::register::sie;
@@ -36,10 +37,16 @@ fn set_user_trap_entry() {
     }
 }
 
+pub fn set_shutdown_trap_entry() {
+    unsafe {
+        stvec::write(shutdown as usize, TrapMode::Direct);
+    }
+}
+
 pub fn trap_return() -> ! {
     set_user_trap_entry();
     let trap_ctx_ptr = TRAP_CONTEXT_ADDR;
-    let user_satp = current_user_token();
+    let user_satp = current_user_memory_set().exclusive_access().token();
     extern "C" {
         fn __alltraps();
         fn __restore();
@@ -84,13 +91,18 @@ pub fn trap_handler() -> ! {
         }
         Trap::Exception(Exception::StoreFault)
         | Trap::Exception(Exception::StorePageFault) => {
-            println!("[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, core dumped.", stval, ctx.sepc);
+            println!("[kernel] Store pageFault in application, bad addr = {:#x}, bad instruction = {:#x}, core dumped.", stval, ctx.sepc);
             exit_current_and_run_next();
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!(
                 "[kernel] IllegalInstruction in application, core dumped."
             );
+            exit_current_and_run_next();
+        }
+        Trap::Exception(Exception::LoadFault)
+        | Trap::Exception(Exception::LoadPageFault) => {
+            println!("[kernel] Load pageFault in application, bad addr = {:#x}, bad instruction = {:#x}, core dumped.", stval, ctx.sepc);
             exit_current_and_run_next();
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {

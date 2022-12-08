@@ -17,6 +17,6 @@ pub fn main() -> i32 {
         end,
         end - start
     );
-    println!("Test sleep1 OK!");
+    println!("Test1 sleep1 OK!");
     0
 }

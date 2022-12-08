@@ -1,5 +1,6 @@
 # Building
 TARGET := riscv64gc-unknown-none-elf
+# Change me to `debug` to debug mode.
 MODE := release
 KERNEL_ELF := target/$(TARGET)/$(MODE)/os
 KERNEL_BIN := $(KERNEL_ELF).bin
@@ -12,6 +13,8 @@ endif
 
 # Disassembly
 DISASM ?= -x
+
+TEST ?= 0
 
 # Bootloader
 # We use QEMU by default.

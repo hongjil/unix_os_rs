@@ -24,6 +24,13 @@ macro_rules! print {
 }
 
 #[macro_export]
+macro_rules! user_print {
+    ($fmt: literal $(, $($arg: tt)+)?) => {
+        $crate::console::print(format_args!(concat!("\x1b[90m", $fmt, "\x1b[0m") $(, $($arg)+)?));
+    }
+}
+
+#[macro_export]
 macro_rules! println {
     ($fmt: literal $(, $($arg: tt)+)?) => {
         $crate::console::print(format_args!(concat!($fmt, "\n") $(, $($arg)+)?));

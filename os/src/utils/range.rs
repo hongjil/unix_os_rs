@@ -1,11 +1,12 @@
+use core::cmp::{max, min};
 pub trait StepByOne {
     fn step(&mut self);
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub struct SimpleRange<T>
 where
-    T: StepByOne + PartialEq + PartialOrd + Copy,
+    T: StepByOne + Eq + Ord + Copy,
 {
     start: T,
     end: T,
@@ -13,7 +14,7 @@ where
 
 impl<T> SimpleRange<T>
 where
-    T: StepByOne + PartialEq + PartialOrd + Copy,
+    T: StepByOne + Eq + Ord + Copy,
 {
     pub fn new(start: T, end: T) -> Self {
         Self { start, end }
@@ -24,15 +25,24 @@ where
     pub fn get_end(&self) -> T {
         self.end
     }
-    pub fn is_overlapped(&self, another: Self) -> bool {
-        (another.start <= self.start && self.start < another.end)
+    // Returns a range if there is an intersection between two sets.
+    pub fn intersect(&self, another: Self) -> Option<Self> {
+        if (another.start <= self.start && self.start < another.end)
             || (self.start <= another.start && another.start < self.end)
+        {
+            Some(Self::new(
+                min(self.start, another.start),
+                max(self.end, another.end),
+            ))
+        } else {
+            None
+        }
     }
 }
 
 impl<T> IntoIterator for SimpleRange<T>
 where
-    T: StepByOne + PartialEq + PartialOrd + Copy,
+    T: StepByOne + Eq + Ord + Copy,
 {
     type Item = T;
     type IntoIter = SimpleRangeIterator<T>;

@@ -2,6 +2,8 @@ const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
 const SYSCALL_YIELD: usize = 124;
 const SYSCALL_GET_TIME: usize = 169;
+const SYSCALL_MUNMAP: usize = 215;
+const SYSCALL_MMAP: usize = 222;
 
 mod fs;
 mod process;
@@ -21,6 +23,8 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
             SYSCALL_EXIT => "SYSCALL_EXIT",
             SYSCALL_YIELD => "SYSCALL_YIELD",
             SYSCALL_GET_TIME => "SYSCALL_GET_TIME",
+            SYSCALL_MMAP => "SYSCALL_MMAP",
+            SYSCALL_MUNMAP => "SYSCALL_MUNMAP",
             _ => "SYSCALL_UNSUPPORTED",
         }
     );
@@ -30,6 +34,8 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
         SYSCALL_EXIT => sys_exit(args[0] as i32),
         SYSCALL_YIELD => sys_yield(),
         SYSCALL_GET_TIME => sys_get_time(args[0] as *mut TimeVal, args[1]),
+        SYSCALL_MMAP => sys_mmap(args[0], args[1], args[2]),
+        SYSCALL_MUNMAP => sys_munmap(args[0], args[1]),
         _ => panic!("Unsupported syscall_id: {}", syscall_id),
     }
 }

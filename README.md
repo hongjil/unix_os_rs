@@ -11,7 +11,7 @@ The OS runs with `qemu-system-riscv64` simulator on Mac M1 and check the [prereq
 $ cd os/
 $ make run
 ```
-[![asciicast](https://asciinema.org/a/Phunb3wzt3978bfqDx2RaIaPL.svg)](https://asciinema.org/a/Phunb3wzt3978bfqDx2RaIaPL)
+[![asciicast](https://asciinema.org/a/63amL5TRnLvmzG7dxxHKmIkWH.svg)](https://asciinema.org/a/63amL5TRnLvmzG7dxxHKmIkWH)
 ### Run with GDB
 ```bash
 $ cd os/
@@ -19,5 +19,11 @@ $ cd os/
 $ make gdbserver
 # Open another terminal, still in os folder, run
 $ make gdbclient
+```
+#### Or instead:
+```bash
+$ cd os/
+# Start a tmux session which hold client/server on two sides.
+$ make debug
 ```
 Check [this gdb cheatsheet](docs/gdb_cheatsheet.md) in case you need help :)

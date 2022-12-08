@@ -179,6 +179,7 @@ impl StepByOne for VirtPageNum {
         self.0 = self.0 + 1;
     }
 }
+
 impl ops::Add<usize> for PhysPageNum {
     type Output = PhysPageNum;
     fn add(self, _rhs: usize) -> PhysPageNum {

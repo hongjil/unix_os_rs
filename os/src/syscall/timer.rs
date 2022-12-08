@@ -2,7 +2,7 @@ use core::mem::size_of;
 
 use crate::config::MICRO_PER_SEC;
 use crate::mm::translated_mut_byte_buffer;
-use crate::task::current_user_token;
+use crate::task::current_user_memory_set;
 use crate::timer::get_time_us;
 
 #[repr(C)]
@@ -30,8 +30,11 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
         usec: us % MICRO_PER_SEC,
     };
     // Translates the user's pointer into a list of buffers to populate.
-    let mut user_bufs =
-        translated_mut_byte_buffer(current_user_token(), ts as *const u8, len);
+    let mut user_bufs = translated_mut_byte_buffer(
+        current_user_memory_set().exclusive_access().token(),
+        ts as *const u8,
+        len,
+    );
     unsafe {
         let ts_slice = core::slice::from_raw_parts(
             (&now as *const TimeVal) as *const u8,

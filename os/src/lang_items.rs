@@ -14,8 +14,6 @@ fn panic(info: &PanicInfo) -> ! {
     } else {
         println!("[kernel] Panicked: {}", info.message().unwrap());
     }
-
-    #[cfg(debug_assertions)]
     unsafe {
         stack_trace::print_stack_trace();
     }

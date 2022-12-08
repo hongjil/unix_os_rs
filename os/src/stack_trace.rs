@@ -1,3 +1,4 @@
+use crate::trap::set_shutdown_trap_entry;
 use core::{arch::asm, ptr};
 /*
 Stack
@@ -37,6 +38,7 @@ Stack
  */
 pub unsafe fn print_stack_trace() -> () {
     let mut fp: *const usize;
+    set_shutdown_trap_entry();
     asm!("mv {}, fp", out(reg) fp);
 
     println!("== Begin stack trace ==");
