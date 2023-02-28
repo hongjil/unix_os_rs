@@ -1,6 +1,7 @@
 mod address;
 mod frame_allocator;
 mod heap_allocator;
+mod memory_area;
 mod memory_set;
 mod page_table;
 
@@ -8,7 +9,8 @@ use crate::sync::UPSafeCell;
 pub use address::*;
 use alloc::sync::Arc;
 use lazy_static::*;
-pub use memory_set::{MapArea, MapPermission, Mapping, MemorySet};
+pub use memory_area::{MapPermission, Mapping, MemoryArea};
+pub use memory_set::MemorySet;
 pub use page_table::{translated_byte_buffer, translated_mut_byte_buffer};
 
 lazy_static! {

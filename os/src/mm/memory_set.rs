@@ -14,8 +14,9 @@ use crate::{
         USER_STACK_SIZE,
     },
     error::KernelError,
+    mm::memory_area::*,
 };
-use alloc::collections::{BTreeMap, LinkedList};
+use alloc::collections::LinkedList;
 use core::arch::asm;
 use core::cmp::max;
 use riscv::register::satp;
@@ -23,36 +24,9 @@ use riscv::register::satp;
 pub struct MemorySet {
     page_table: PageTable,
     // A pair of values, the bool indicates whether the pair is droppable from
-    // the areas list. The elements are sorted by the VPN range in each MapArea
+    // the areas list. The elements are sorted by the VPN range in each MemoryArea
     // in ascending order and assumed there is no overlap.
-    areas: LinkedList<(MapArea, bool)>,
-}
-// The MapArea includes the information about a consecutive memory segment
-// given the context(page table).
-#[derive(Debug)]
-pub struct MapArea {
-    vpn_range: VirtPageNumRange,
-    // The mapping schema for this map area.
-    mapping: Mapping,
-    map_perm: MapPermission,
-}
-
-#[derive(Debug)]
-pub enum Mapping {
-    // If the mapping schema is identical, VPN==PPN.
-    Identical,
-    // If the mapping schema is Framed, allocating a frame as PPN for it.
-    Framed(BTreeMap<VirtPageNum, FrameTracker>),
-}
-
-bitflags! {
-    pub struct MapPermission: u8 {
-        // The bit index matches what we have in PageTableEntry.
-        const R = 1 << 1;
-        const W = 1 << 2;
-        const X = 1 << 3;
-        const U = 1 << 4;
-    }
+    areas: LinkedList<(MemoryArea, bool)>,
 }
 
 extern "C" {
@@ -68,12 +42,6 @@ extern "C" {
     fn strampoline();
 }
 
-impl Mapping {
-    pub fn new_framed() -> Self {
-        Mapping::Framed(BTreeMap::new())
-    }
-}
-
 impl MemorySet {
     pub fn new() -> Self {
         Self {
@@ -85,13 +53,13 @@ impl MemorySet {
         if let Some((mut area, _)) = self
             .areas
             .drain_filter(|(map_area, droppable)| {
-                *droppable && vpn_range == map_area.vpn_range
+                *droppable && vpn_range == map_area.get_vpn_range()
             })
             .last()
         {
             debug!("Dropping area: {:?}", area);
-            for vpn in area.vpn_range {
-                area.mapping.unmap(vpn);
+            for vpn in area.get_vpn_range() {
+                area.unmap(vpn);
                 self.page_table.unmap(vpn);
             }
             Ok(())
@@ -105,32 +73,35 @@ impl MemorySet {
 
     pub fn push_area(
         &mut self,
-        mut new_area: MapArea,
+        mut new_area: MemoryArea,
         droppable: bool,
         data: Option<&[u8]>,
     ) -> Result<()> {
         debug!("Pushing new area: {:?}", new_area);
+        let vpn_range = new_area.get_vpn_range();
         // First, check if there is overlap with existing areas and find the place to insert.
         for (area, _) in self.areas.iter() {
-            if let Some(overlap) = new_area.vpn_range.intersect(area.vpn_range)
+            if let Some(overlap) =
+                new_area.get_vpn_range().intersect(area.get_vpn_range())
             {
                 return Err(KernelError::InvalidArgument(format!(
                         "The new area {:?} conflicts with the existing one {:?} with overlap {:?}",
-                        new_area.vpn_range, area.vpn_range, overlap
+                        new_area.get_vpn_range(), area.get_vpn_range(), overlap
                     )));
             }
         }
 
         // Populate the area to the page table.
-        let pte_flags = PTEFlags::from_bits(new_area.map_perm.bits()).unwrap();
-        for vpn in new_area.vpn_range {
-            let ppn = new_area.mapping.map(vpn);
+        let pte_flags =
+            PTEFlags::from_bits(new_area.get_map_perm().bits()).unwrap();
+        for vpn in vpn_range {
+            let ppn = new_area.map(vpn);
             self.page_table.map(vpn, ppn, pte_flags);
         }
-        // Optionally, if there is data, copy it into the MapArea.
+        // Optionally, if there is data, copy it into the MemoryArea.
         if let Some(data) = data {
             let mut start: usize = 0;
-            let mut current_vpn = new_area.vpn_range.get_start();
+            let mut current_vpn = vpn_range.get_start();
             let len = data.len();
             loop {
                 let src = &data[start..len.min(start + PAGE_SIZE)];
@@ -146,11 +117,11 @@ impl MemorySet {
                     break;
                 }
                 current_vpn.step();
-                if current_vpn >= new_area.vpn_range.get_end() {
+                if current_vpn >= vpn_range.get_end() {
                     panic!(
                         "[kernel] Insufficient memory for data with size: \
                         {:?} vs {:?}",
-                        new_area.vpn_range.into_iter().count() * PAGE_SIZE,
+                        vpn_range.into_iter().count() * PAGE_SIZE,
                         data.len()
                     );
                 }
@@ -200,7 +171,7 @@ impl MemorySet {
             stext as usize, etext as usize
         );
         memory_set.push_area(
-            MapArea::new(
+            MemoryArea::new(
                 VirtPageNumRange::new_from_va(
                     (stext as usize).into(),
                     (etext as usize).into(),
@@ -216,7 +187,7 @@ impl MemorySet {
             srodata as usize, erodata as usize
         );
         memory_set.push_area(
-            MapArea::new(
+            MemoryArea::new(
                 VirtPageNumRange::new_from_va(
                     (srodata as usize).into(),
                     (erodata as usize).into(),
@@ -232,7 +203,7 @@ impl MemorySet {
             sdata as usize, edata as usize
         );
         memory_set.push_area(
-            MapArea::new(
+            MemoryArea::new(
                 VirtPageNumRange::new_from_va(
                     (sdata as usize).into(),
                     (edata as usize).into(),
@@ -248,7 +219,7 @@ impl MemorySet {
             sbss_with_stack as usize, ebss as usize
         );
         memory_set.push_area(
-            MapArea::new(
+            MemoryArea::new(
                 VirtPageNumRange::new_from_va(
                     (sbss_with_stack as usize).into(),
                     (ebss as usize).into(),
@@ -264,7 +235,7 @@ impl MemorySet {
             ekernel as usize, MEMORY_END as usize
         );
         memory_set.push_area(
-            MapArea::new(
+            MemoryArea::new(
                 VirtPageNumRange::new_from_va(
                     (ekernel as usize).into(),
                     (MEMORY_END as usize).into(),
@@ -310,7 +281,7 @@ impl MemorySet {
                 let vpn_range = VirtPageNumRange::new_from_va(start_va, end_va);
                 max_end_vpn = max(max_end_vpn, vpn_range.get_end());
                 memory_set.push_area(
-                    MapArea::new(vpn_range, Mapping::new_framed(), map_perm),
+                    MemoryArea::new(vpn_range, Mapping::new_framed(), map_perm),
                     false,
                     Some(
                         &elf.input[ph.offset() as usize
@@ -326,7 +297,7 @@ impl MemorySet {
         user_stack_bottom += PAGE_SIZE;
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
         memory_set.push_area(
-            MapArea::new(
+            MemoryArea::new(
                 VirtPageNumRange::new_from_va(
                     user_stack_bottom.into(),
                     user_stack_top.into(),
@@ -339,7 +310,7 @@ impl MemorySet {
         )?;
         // map TrapContext
         memory_set.push_area(
-            MapArea::new(
+            MemoryArea::new(
                 VirtPageNumRange::new_from_va(
                     TRAP_CONTEXT_ADDR.into(),
                     TRAMPOLINE_ADDR.into(),
@@ -379,20 +350,6 @@ impl Mapping {
             Mapping::Framed(ref mut frames) => {
                 frames.remove(&vpn);
             }
-        }
-    }
-}
-
-impl MapArea {
-    pub fn new(
-        vpn_range: VirtPageNumRange,
-        mapping: Mapping,
-        map_perm: MapPermission,
-    ) -> Self {
-        Self {
-            vpn_range,
-            mapping,
-            map_perm,
         }
     }
 }

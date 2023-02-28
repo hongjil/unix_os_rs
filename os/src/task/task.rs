@@ -54,7 +54,7 @@ impl TaskControlBlock {
             kernel_stack_bottom, kernel_stack_top
         );
         KERNEL_SPACE.exclusive_access().push_area(
-            MapArea::new(
+            MemoryArea::new(
                 VirtPageNumRange::new_from_va(
                     kernel_stack_bottom.into(),
                     kernel_stack_top.into(),

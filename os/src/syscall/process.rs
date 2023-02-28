@@ -23,7 +23,7 @@ pub fn sys_mmap(start: usize, len: usize, prot: usize) -> isize {
         return -1;
     }
     let result = current_user_memory_set().exclusive_access().push_area(
-        MapArea::new(
+        MemoryArea::new(
             VirtPageNumRange::new_from_va(start.into(), (start + len).into()),
             Mapping::new_framed(),
             MapPermission::U
